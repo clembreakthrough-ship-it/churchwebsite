@@ -1,0 +1,82 @@
+rules_version = '2';
+
+/**
+ * Firestore security rules for CLEM Divine Breakthrough Assembly.
+ *
+ * Deploy with: firebase deploy --only firestore:rules
+ * (requires the Firebase CLI and a firebase.json pointing at this file —
+ * see README.md).
+ *
+ * Model:
+ *  - Public visitors may CREATE testimonies, prayer requests and giving
+ *    records (the site's public forms), but may NOT read, update or
+ *    delete them — prayer requests and giving records are sensitive, and
+ *    testimonies must be reviewed before they're public.
+ *  - Only an authenticated admin (a user you create in Firebase
+ *    Authentication → Users) may read, approve, update or delete records,
+ *    and may create/update/delete events, sermons, gallery items and
+ *    announcements.
+ *  - Approved testimonies, events, sermons, gallery items and active
+ *    announcements are readable by everyone, since the public site
+ *    displays them without requiring login.
+ *
+ * IMPORTANT: "isAdmin()" below trusts any signed-in Firebase Auth user.
+ * Before inviting other staff to Firebase Authentication, tighten this to
+ * check a custom claim or an /admins/{uid} allow-list document instead —
+ * see the commented alternative below.
+ */
+function isAdmin() {
+  return request.auth != null;
+  // Stricter alternative once you have an admins collection:
+  // return request.auth != null &&
+  //   exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /testimonies/{id} {
+      allow create: if request.resource.data.keys().hasAll(['name','title','details','status'])
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.name is string  && request.resource.data.name.size() < 120
+                    && request.resource.data.title is string && request.resource.data.title.size() < 200
+                    && request.resource.data.details is string && request.resource.data.details.size() < 4000;
+      allow read: if resource.data.status == 'approved' || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    match /prayerRequests/{id} {
+      allow create: if request.resource.data.keys().hasAll(['name','request'])
+                    && request.resource.data.name is string && request.resource.data.name.size() < 120
+                    && request.resource.data.request is string && request.resource.data.request.size() < 4000;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /giving/{id} {
+      allow create: if request.resource.data.keys().hasAll(['name','amount','purpose'])
+                    && request.resource.data.amount is number && request.resource.data.amount > 0;
+      allow read: if isAdmin();
+      allow update, delete: if false; // financial records are append-only
+    }
+
+    match /events/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /sermons/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /gallery/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /announcements/{id} {
+      allow read: if resource.data.active == true || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}

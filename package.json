@@ -1,0 +1,12 @@
+{
+  "name": "clem-divine-breakthrough-assembly",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Website for CLEM Divine Breakthrough Assembly — A Place Where Everybody Is Somebody.",
+  "scripts": {
+    "dev": "npx serve . -l 3000",
+    "start": "npx serve . -l 3000"
+  },
+  "keywords": ["church", "website", "static-site"],
+  "license": "UNLICENSED"
+}

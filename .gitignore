@@ -1,0 +1,14 @@
+# Real Firebase credentials — never commit. Use firebase-config.example.js as the template.
+firebase-config.js
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependencies (if any tooling is added later)
+node_modules/
+
+# Logs
+*.log
